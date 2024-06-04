@@ -15,7 +15,8 @@ parser.add_argument('--hidden_layers', type=int, default=100, help='The number o
 parser.add_argument('--algorithm', type=str, default="M2", help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
 parser.add_argument('--latent_dim', type=int, default=28, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
 parser.add_argument('--lr', type=float, default=0.0001, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
-parser.add_argument('--num_label', type=int, default=100, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
+parser.add_argument('--batch_size', type=int, default=10, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
+parser.add_argument('--num_label', type=int, default=100, help='')
 
 args = parser.parse_args()
 device = torch.device('cuda:' + '{}'.format(args.gpu))
@@ -42,29 +43,28 @@ def D2H(data, num_classes=10): return torch.nn.functional.one_hot(torch.tensor(d
 
 x = N2T(train_x)
 y = D2H(train_y)
-if args.algorithm !='M1':
-    # rec_x, mean, std, rec_y = model(x, y)
-    rec_x, mean, std = model(x, y)
-elif args.algorithm=='M1':
-    rec_x, mean, std = model(x)
-for _ in range(10):
-    display(x[_])
-    display(rec_x[_])
-exit()
+# if args.algorithm !='M1':
+#     # rec_x, mean, std, rec_y = model(x, y)
+#     rec_x, mean, std = model(x, y)
+# elif args.algorithm=='M1':
+#     rec_x, mean, std = model(x)
+# for _ in range(10):
+#     display(x[_])
+#     display(rec_x[_])
 # ===================
 # Training Curve Plot
 # ===================
-loss = history[:,0]
-loss_valid = history[:,1]
-epochs = np.arange(1, len(loss) + 1)
-plt.figure(figsize=(10, 5))
-plt.plot(epochs, loss, label='Train Loss')
-plt.plot(epochs, loss_valid, label='Validation Loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.yscale('log')
-plt.legend()
-plt.show()
+# loss = history[:,0]
+# loss_valid = history[:,1]
+# epochs = np.arange(1, len(loss) + 1)
+# plt.figure(figsize=(10, 5))
+# plt.plot(epochs, loss, label='Train Loss')
+# plt.plot(epochs, loss_valid, label='Validation Loss')
+# plt.xlabel('Epochs')
+# plt.ylabel('Loss')
+# plt.yscale('log')
+# plt.legend()
+# plt.show()
 
 # ===================
 # Model Test
@@ -74,7 +74,8 @@ train_x, train_y, valid_x, valid_y, test_x, test_y = data
 test_y_torch = torch.tensor(test_y, device=device)
 test_y_hot = torch.nn.functional.one_hot(test_y_torch, num_classes=10)
 
-rec_x, mean, log_var, rec_y = model(N2T(test_x), test_y_hot)
+# rec_x, mean, log_var, rec_y = model(N2T(test_x), test_y_hot)
+rec_x, mean, log_var, rec_y = model(N2T(test_x))
 # logpy = torch.mean((rec_y*1.0 - test_y_hot*1.0)**2)
 # logpx = torch.mean((rec_x - test_x)**2)
 # KL_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mean ** 2 - torch.exp(log_var), dim = 1), dim = 0)

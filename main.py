@@ -19,4 +19,9 @@ import os
 
 # os.system("python Train.py --algorithm M0 --epochs 30 --batch_size 100 --hidden_layers 400 --latent_dim 200 --lr 1e-4")
 
-os.system("python Train.py --algorithm M2 --epochs 1000 --batch_size 100 --hidden_layers 400 --latent_dim 200 --num_label 1000 --lr 1e-4")
+# os.system("python Train.py --algorithm M2 --epochs 1000 --batch_size 100 --hidden_layers 400 --latent_dim 200 --num_label 1000 --lr 1e-4")
+
+# os.system("python Train.py --algorithm M1 --epochs 300 --batch_size 100 --hidden_layers 400 --latent_dim 200 --num_label 1000 --lr 1e-4")
+# os.system("python Test.py --algorithm M1 --epochs 300 --batch_size 100 --hidden_layers 400 --latent_dim 200 --num_label 1000 --lr 1e-4")
+
+os.system("python Train.py --algorithm M0 --epochs 300 --batch_size 100 --hidden_layers 400 --latent_dim 200 --num_label 1000 --lr 1e-4")

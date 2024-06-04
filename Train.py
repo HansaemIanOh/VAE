@@ -30,7 +30,11 @@ if args.algorithm=='M0':
     model, history = Trainer.TrainM0(data)
 elif args.algorithm=='M1':
     print("This is M1")
-    model, history = Trainer.TrainM1(data)
+    save = os.path.join('Parameters/'+args.algorithm, model_name+".pth")
+    model = Trainer.model
+    # model.load_state_dict(torch.load(save))
+    # model, history = Trainer.TrainM1(data, model)
+    model, history = Trainer.TrainM1(data, 0)
 elif args.algorithm=='M2':
     print("This is M2")
     model, history = Trainer.TrainM2(data)

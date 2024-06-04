@@ -76,6 +76,8 @@ class M1(nn.Module):
         self.layer_mean = nn.Linear(hidden, self.latent_dimension)
         self.layer_var = nn.Linear(hidden, self.latent_dimension)
         self.layer_y = nn.Linear(2 * hidden, 10)
+        # self.layer_y_z = nn.Linear(hidden + latent_dimension, 10)
+        self.layer_y_z = nn.Linear(latent_dimension, 10)
         # Combine z and y to hidden layer
         self.layer_latent2 = nn.Linear(self.latent_dimension, hidden)
     def Sampling(self, mean, log_var):
@@ -93,10 +95,16 @@ class M1(nn.Module):
         # ====================
         # Classifier network
         # ====================
-        latent_y = self.classifier(x)
-        latent2 = torch.cat((latent1, latent_y), dim=1)
-        # latent2 = torch.cat((z, latent_y))
-        y_hat = self.act(self.layer_y(latent2))
+        # Memo : latent에서 y를 합성할 경우 성능이 좋지 않음을 확인. 라벨 천 개에 대해서 87퍼센트 확인.
+        # Memo : z 에서 뽑아도 성능이 좋지 않음. y를 애초에 \mu에서 뽑는 실험을 진행.
+        # latent_y = self.classifier(x)
+        # latent2 = torch.cat((latent1, latent_y), dim=1)
+        # latent2 = torch.cat((z, latent_y), dim=1)
+        # y_hat = self.act(self.layer_y_z(latent2))
+        # Memo : mean 을 뽑아서 하는 경우 매우 좋은 성능을 확인하였음. 0.93610 퍼센트의 정확도.
+        # Memo : ㅋ 을 뽑아서 하는 경우 0.936 퍼센트의 정확도. 대략적으로 비슷홤.
+        # y_hat = self.act(self.layer_y_z(mean))
+        y_hat = self.act(self.layer_y_z(z))
         return x_hat, mean, log_var, y_hat
 # =-=-=-=-
 # M1 conditional vae

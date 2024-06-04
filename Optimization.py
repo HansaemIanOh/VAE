@@ -40,6 +40,11 @@ class ClassOptimization:
         # Set optimizer (Adam optimizer for now)
         optimizer = optim.Adam(self.model.parameters(), lr=self.lr, amsgrad = 'amsgrad')
         
+        index_total = np.arange(train_x.shape[0])
+        index_label = np.random.choice(index_total, self.num_label, replace=False)
+
+        data_x = train_x[index_label]
+        data_y = train_y[index_label]
         # Training
         start_time = time.time()
         self.model.train()
@@ -53,9 +58,9 @@ class ClassOptimization:
             losses = []
             accuracies = []
             # Label
-            for i in range(0, train_x.shape[0], self.batch_size):
-                train_x_batch = train_x[i:(i+self.batch_size), ...] # (batch, channel, width, height)
-                train_y_batch = train_y[i:(i+self.batch_size), ...]
+            for i in range(0, data_x.shape[0], self.batch_size):
+                train_x_batch = data_x[i:(i+self.batch_size), ...] # (batch, channel, width, height)
+                train_y_batch = data_y[i:(i+self.batch_size), ...]
                 optimizer.zero_grad()
                 train_y_hot = D2H(train_y_batch)
                 loss, accuracy = self.LossM0(N2T(train_x_batch), train_y_hot)
@@ -82,44 +87,102 @@ class ClassOptimization:
             history.append(loss_save)
         return best_model, history
     
-    def TrainM1(self, data):
+    def TrainM1(self, data, model):
+        if model != 0:
+            self.model = model
         def N2T(data, data_type=torch.float32): return torch.tensor(data, device=self.device, dtype=data_type)
         def D2H(data, num_classes=10): return torch.nn.functional.one_hot(torch.tensor(data, device=self.device), num_classes=num_classes)
         train_x, train_y, valid_x, valid_y, test_x, test_y = data
         
         # Set optimizer (Adam optimizer for now)
         optimizer = optim.Adam(self.model.parameters(), lr=self.lr, amsgrad = 'amsgrad')
-        
+
+        index_total = np.arange(train_x.shape[0])
+        index_label = np.random.choice(index_total, self.num_label, replace=False)
+
         # Training
         start_time = time.time()
         self.model.train()
+        best_model = copy.deepcopy(self.model)
         history = []
+        # M1 VAE Training
+        if model == 0:
+            for epoch in range(self.epochs):
+                epoch_start_time = time.time()
+                losses = []
+                accuracies = []
+                
 
+                for i in range(0, train_x.shape[0], self.batch_size):
+                    train_x_batch = train_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                    train_y_batch = train_y[i:i+self.batch_size, ...]
+                    optimizer.zero_grad()
+                    train_y_hot = D2H(train_y_batch)
+                    loss = self.LossM1VAE(N2T(train_x_batch))
+                    
+                    loss.backward()
+                    optimizer.step()
+                    losses.append(loss.item())
+                losses = np.array(losses)
+                avg_loss = np.mean(losses)
+
+                epoch_train_time = time.time() - epoch_start_time
+                print('Epoch : {} / {} Time : {:.3f} Loss : {:.5f}'.format(epoch + 1, self.epochs, epoch_train_time, avg_loss))
+                # loss evolution
+                loss_save = [loss.item()]
+                history.append(loss_save)
+        # M1 Classifier Training
+        optimizer = optim.Adam(self.model.parameters(), lr=self.lr, amsgrad = 'amsgrad')
+        # Gradient fix
+        for param in self.model.encoder.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer_mean.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer_var.parameters():
+            param.requires_grad = False
+
+        for param in self.model.decoder.parameters():
+            param.requires_grad = False
+        data_x = train_x[index_label]
+        data_y = train_y[index_label]
+        
         for epoch in range(self.epochs):
             epoch_start_time = time.time()
             losses = []
             accuracies = []
             
-
-            for i in range(0, train_x.shape[0], self.batch_size):
-                train_x_batch = train_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
-                train_y_batch = train_y[i:i+self.batch_size, ...]
+            for i in range(0, data_x.shape[0], self.batch_size):
+                train_x_batch = data_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                train_y_batch = data_y[i:i+self.batch_size, ...]
                 optimizer.zero_grad()
                 train_y_hot = D2H(train_y_batch)
 
-                loss = self.LossM1VAE(N2T(train_x_batch))
-                
+                loss, accuracy = self.LossM1C(N2T(train_x_batch), train_y_hot)
                 loss.backward()
                 optimizer.step()
                 losses.append(loss.item())
+                accuracies.append(accuracy)
             losses = np.array(losses)
             avg_loss = np.mean(losses)
+            losses = np.array(losses)
+            avg_loss = np.mean(losses)
+            avg_accuracy = np.mean(np.array(accuracies))
+            valid_y_torch = torch.tensor(valid_y, device = self.device)
+            valid_y_hot = torch.nn.functional.one_hot(valid_y_torch, num_classes=10)
+            loss_valid, valid_accuracy = self.LossM1C(N2T(valid_x), valid_y_hot)
+            loss_valid_comparison, valid_accuracy_comparison = self.LossM1CC(N2T(valid_x), valid_y_hot, best_model)
+            if valid_accuracy > valid_accuracy_comparison:
+                best_model = copy.deepcopy(self.model)
+                print("Model stored.")
 
             epoch_train_time = time.time() - epoch_start_time
-            print('Epoch : {} / {} Time : {:.3f} Loss : {:.5f}'.format(epoch + 1, self.epochs, epoch_train_time, avg_loss))
+            print('Epoch : {} / {} Time : {:.3f} Loss : {:.5f} Accuracy : {:.5f} Valid Accuracy : {:.5f}'.format(epoch + 1, self.epochs, epoch_train_time, avg_loss, avg_accuracy, valid_accuracy))
             # loss evolution
             loss_save = [loss.item()]
             history.append(loss_save)
+
         return self.model, history       
 
     def TrainConditionalM1(self, data):
@@ -134,33 +197,7 @@ class ClassOptimization:
         start_time = time.time()
         self.model.train()
         history = []
-        # VAE training
-        for epoch in range(self.epochs):
-            epoch_start_time = time.time()
-            losses = []
-            accuracies = []
-            
 
-            for i in range(0, train_x.shape[0], self.batch_size):
-                train_x_batch = train_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
-                train_y_batch = train_y[i:i+self.batch_size, ...]
-                optimizer.zero_grad()
-                train_y_hot = D2H(train_y_batch)
-
-                loss = self.LossConditionalM1VAE(N2T(train_x_batch), train_y_hot)
-                
-                loss.backward()
-                optimizer.step()
-                losses.append(loss.item())
-            losses = np.array(losses)
-            avg_loss = np.mean(losses)
-
-            epoch_train_time = time.time() - epoch_start_time
-            print('Epoch : {} / {} Time : {:.3f} Loss : {:.5f}'.format(epoch + 1, self.epochs, epoch_train_time, avg_loss))
-            # loss evolution
-            loss_save = [loss.item()]
-            history.append(loss_save)
-        # Classifier training
         for epoch in range(self.epochs):
             epoch_start_time = time.time()
             losses = []
@@ -241,7 +278,7 @@ class ClassOptimization:
                 loss.backward()
                 optimizer.step()
                 losses.append(loss.item())
-            accuracies.append(accuracy)
+                accuracies.append(accuracy)
             losses = np.array(losses)
             avg_loss = np.mean(losses)
             avg_accuracy = np.mean(np.array(accuracies))
@@ -281,9 +318,15 @@ class ClassOptimization:
 
     def LossM1C(self, x, y):
         rec_x, mean, log_var, y_hat = self.model(x)
-        loss_y = nn.functional.binary_cross_entropy(y_hat, y, reduction='sum')
+        loss_y = F.cross_entropy(y_hat.float(), y.float())
         loss = loss_y
-        return loss
+        # Get the predicted labels (the index of the max log-probability)
+        _, predicted_labels = torch.max(y_hat, 1)
+        true_labels = torch.argmax(y, dim=1)
+        # Calculate the number of correct predictions
+        correct_predictions = (predicted_labels == true_labels).sum().item()
+        accuracy = correct_predictions / y.size(0)
+        return loss, accuracy
 
     def LossConditionalM1VAE(self, x, y):
         rec_x, mean, log_var = self.model(x, y)
@@ -352,6 +395,21 @@ class ClassOptimization:
     def LossM2VAEUnLabelComparison(self, x, y, model):
         y_none = None
         rec_x, mean, std, rec_y = model(x, y_none)
+        logpx = F.binary_cross_entropy(rec_x, x)
+        entropy = - torch.mean(rec_y * torch.log(rec_y))
+        KL_loss = torch.mean(- 0.5 * torch.sum(1 + torch.log(std**2) - mean ** 2 - std**2, dim = 1), dim = 0)
+        loss = entropy + logpx + KL_loss
+        # ==================== accuracy 탐색
+        _, predicted_labels = torch.max(rec_y, 1)
+        true_labels = torch.argmax(y, dim=1)
+        correct_predictions = (predicted_labels == true_labels).sum().item()
+        accuracy = correct_predictions / y.size(0)
+        # ====================
+        return loss, accuracy
+
+    def LossM1CC(self, x, y, model):
+        y_none = None
+        rec_x, mean, std, rec_y = model(x)
         logpx = F.binary_cross_entropy(rec_x, x)
         entropy = - torch.mean(rec_y * torch.log(rec_y))
         KL_loss = torch.mean(- 0.5 * torch.sum(1 + torch.log(std**2) - mean ** 2 - std**2, dim = 1), dim = 0)
