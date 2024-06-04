@@ -2,6 +2,7 @@ from Optimization import *
 from DataLoader import *
 import torch
 import argparse
+
 Loader = ClassDataLoader()
 data = Loader.Load()
 
@@ -12,14 +13,16 @@ parser.add_argument('--seed', type=int, default=42, help='Random seed')
 parser.add_argument('--hidden_layers', type=int, default=100, help='The number of hidden layers')
 parser.add_argument('--algorithm', type=str, default="M2", help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
 parser.add_argument('--latent_dim', type=int, default=28, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
-parser.add_argument('--lr', type=float, default=0.0001, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
+parser.add_argument('--lr', type=float, default=0.00001, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
 parser.add_argument('--batch_size', type=int, default=10, help='Type the algorithm name : Pinn or ConvPinn or ConvPinnCat')
+parser.add_argument('--num_label', type=int, default=100, help='')
 
 args = parser.parse_args()
-device = torch.device('cuda:' + '{}'.format(args.gpu))
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device('cuda:' + '{}'.format(args.gpu))
 torch.manual_seed(args.seed)
 
-Trainer = ClassOptimization(model_type = args.algorithm, latent_dimension=args.latent_dim, device=device, lr=args.lr, batch_size=args.batch_size, alpha=0.1, epochs=args.epochs, hidden=args.hidden_layers)
+Trainer = ClassOptimization(model_type = args.algorithm, latent_dimension=args.latent_dim, device=device, lr=args.lr, batch_size=args.batch_size, alpha=0.1, epochs=args.epochs, hidden=args.hidden_layers, num_label=args.num_label)
 
 model_name = args.algorithm
 if args.algorithm=='M0':
@@ -31,6 +34,9 @@ elif args.algorithm=='M1':
 elif args.algorithm=='M2':
     print("This is M2")
     model, history = Trainer.TrainM2(data)
+elif args.algorithm=='ConditionalM1':
+    print("This is conditional M1")
+    model, history = Trainer.TrainConditionalM1(data)
 else:
     print("Wrong model is chosen.")
     exit()
