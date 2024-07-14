@@ -59,7 +59,7 @@ class ClassOptimization:
             accuracies = []
             # Label
             for i in range(0, data_x.shape[0], self.batch_size):
-                train_x_batch = data_x[i:(i+self.batch_size), ...] # (batch, channel, width, height)
+                train_x_batch = data_x[i:(i+self.batch_size), ...] # [BxCxHxW]
                 train_y_batch = data_y[i:(i+self.batch_size), ...]
                 optimizer.zero_grad()
                 train_y_hot = D2H(train_y_batch)
