@@ -114,7 +114,7 @@ class ClassOptimization:
                 
 
                 for i in range(0, train_x.shape[0], self.batch_size):
-                    train_x_batch = train_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                    train_x_batch = train_x[i:i+self.batch_size, ...] # [BxCxHxW]
                     train_y_batch = train_y[i:i+self.batch_size, ...]
                     optimizer.zero_grad()
                     train_y_hot = D2H(train_y_batch)
@@ -154,7 +154,7 @@ class ClassOptimization:
             accuracies = []
             
             for i in range(0, data_x.shape[0], self.batch_size):
-                train_x_batch = data_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                train_x_batch = data_x[i:i+self.batch_size, ...] # [BxCxHxW]
                 train_y_batch = data_y[i:i+self.batch_size, ...]
                 optimizer.zero_grad()
                 train_y_hot = D2H(train_y_batch)
@@ -205,7 +205,7 @@ class ClassOptimization:
             
 
             for i in range(0, train_x.shape[0], self.batch_size):
-                train_x_batch = train_x[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                train_x_batch = train_x[i:i+self.batch_size, ...] # [BxCxHxW]
                 train_y_batch = train_y[i:i+self.batch_size, ...]
                 optimizer.zero_grad()
                 train_y_hot = D2H(train_y_batch)
@@ -254,10 +254,10 @@ class ClassOptimization:
             
 
             for i in range(0, train_x_label.shape[0], self.batch_size):
-                train_x_label_batch = train_x_label[i:i+self.batch_size, ...] # (batch, channel, width, height)
+                train_x_label_batch = train_x_label[i:i+self.batch_size, ...] # [BxCxHxW]
                 train_y_label_batch = train_y_label[i:i+self.batch_size, ...]
                 ratio = 50000 // self.num_label
-                train_x_batch = train_x[ratio * i:ratio * (i+self.batch_size), ...] # (batch, channel, width, height)
+                train_x_batch = train_x[ratio * i:ratio * (i+self.batch_size), ...] # [BxCxHxW]
                 train_y_batch = train_y[ratio * i:ratio * (i+self.batch_size), ...]
                 optimizer.zero_grad()
                 train_y_label_hot = D2H(train_y_label_batch)
